@@ -1,11 +1,9 @@
-<div align="center">
+# Chama
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Chama is a browser-based contribution ledger for savings groups.
 
-  <h1>Built with AI Studio</h2>
+## Run it
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+Open `index.html` in a modern browser. Enter a member name, a positive amount in Kenyan shillings, and a date. The ledger shows your contribution history and running total. Use **Export CSV** to download a spreadsheet copy.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+Records are stored in the browser profile where you enter them. Clearing browser data can remove the ledger. Export a copy before switching devices or clearing storage.
