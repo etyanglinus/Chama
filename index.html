@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chama | Contribution ledger</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#142b26;background:#edf5f0;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#123d34;color:white;padding:3rem max(1.25rem,calc((100% - 68rem)/2))}
+h1{font-size:clamp(2.5rem,7vw,4.5rem);margin:0;letter-spacing:-.06em}
+header p{margin:.5rem 0 0;color:#c4e7d8}
+main{width:min(68rem,calc(100% - 2.5rem));margin:1.5rem auto 3rem}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem;margin-bottom:1rem}
+.card{background:white;border:1px solid #cdded6;border-radius:1rem;padding:1.25rem;margin-bottom:1rem}
+.summary .card{margin:0}
+strong{display:block;font-size:1.65rem;margin-top:.35rem;overflow-wrap:anywhere}
+h2{margin:0 0 1rem;font-size:1.25rem}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.85rem;align-items:end}
+label{display:grid;gap:.35rem;font-weight:650;font-size:.9rem}
+input,button{font:inherit;border-radius:.5rem;padding:.65rem;min-width:0}
+input{border:1px solid #8ba79a;width:100%}
+button{background:#12604d;color:white;border:1px solid transparent;font-weight:650;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.table-scroll{overflow:auto}
+table{border-collapse:collapse;width:100%;text-align:left}
+th,td{padding:.75rem;border-bottom:1px solid #d7e5de;overflow-wrap:anywhere}
+th:last-child,td:last-child{text-align:right}
+td:first-child{white-space:nowrap}
+#status{margin:0}
+#status:not(:empty){margin-top:.8rem}
+</style>
+<header><h1>Chama</h1><p>Contribution ledger for your savings group</p></header>
+<main>
+  <section class="summary" aria-label="Ledger summary">
+    <div class="card">Total collected<strong id="total"></strong></div>
+    <div class="card">Contributions<strong id="count"></strong></div>
+  </section>
+  <section class="card">
+    <h2>Record a contribution</h2>
+    <form id="contribution">
+      <label>Member<input name="member" required maxlength="100" autocomplete="off"></label>
+      <label>Amount (KES)<input name="amount" required inputmode="decimal" placeholder="500.00"></label>
+      <label>Date<input name="date" type="date" required></label>
+      <button>Record contribution</button>
+    </form>
+    <p id="status" role="status"></p>
+  </section>
+  <section class="card">
+    <h2>Contribution history</h2>
+    <p id="empty">No contributions recorded yet.</p>
+    <div class="table-scroll"><table id="history" hidden>
+      <thead><tr><th scope="col">Date</th><th scope="col">Member</th><th scope="col">Amount</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+  <p>Records are stored in this browser.</p>
+</main>
+<script>
+const storageKey = 'chama.contributions.v1'
+const currency = new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' })
+const form = document.querySelector('#contribution')
+const historyTable = document.querySelector('#history')
+const status = document.querySelector('#status')
+
+function parseAmount(value) {
+  const parts = /^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(value.trim())
+  if (!parts) return 0
+  return Number(parts[1]) * 100 + Number((parts[2] || '').padEnd(2, '0'))
+}
+
+function readEntries() {
+  return JSON.parse(localStorage.getItem(storageKey) ?? '[]')
+}
+
+function render(entries) {
+  const total = entries.reduce((sum, entry) => sum + entry.cents, 0)
+  document.querySelector('#total').textContent = currency.format(total / 100)
+  document.querySelector('#count').textContent = entries.length
+  document.querySelector('#empty').hidden = entries.length > 0
+  historyTable.hidden = entries.length === 0
+  const body = historyTable.tBodies[0]
+  body.replaceChildren()
+  for (const entry of entries) {
+    const row = body.insertRow()
+    for (const value of [entry.date, entry.member, currency.format(entry.cents / 100)]) {
+      row.insertCell().textContent = value
+    }
+  }
+}
+
+form.elements.date.value = new Date().toLocaleDateString('sv-SE')
+try {
+  render(readEntries())
+} catch {
+  status.textContent = 'Saved contributions could not be loaded.'
+}
+
+form.addEventListener('submit', event => {
+  event.preventDefault()
+  const member = form.elements.member.value.trim()
+  const cents = parseAmount(form.elements.amount.value)
+  if (!member || !cents) {
+    status.textContent = 'Enter a member and a positive KES amount with up to two decimal places.'
+    return
+  }
+  try {
+    const entries = readEntries()
+    entries.unshift({ member, cents, date: form.elements.date.value })
+    localStorage.setItem(storageKey, JSON.stringify(entries))
+    render(entries)
+    form.elements.member.value = ''
+    form.elements.amount.value = ''
+    form.elements.member.focus()
+    status.textContent = 'Contribution recorded.'
+  } catch {
+    status.textContent = 'The contribution could not be saved. Check browser storage and try again.'
+  }
+})
+</script>
+</html>
