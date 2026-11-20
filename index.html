@@ -29,8 +29,6 @@ th:last-child,td:last-child{text-align:right}
 td:first-child{white-space:nowrap}
 #status{margin:0}
 #status:not(:empty){margin-top:.8rem}
-.history-heading{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.5rem;margin-bottom:.75rem}
-.history-heading h2{margin:0}
 </style>
 <header><h1>Chama</h1><p>Contribution ledger for your savings group</p></header>
 <main>
@@ -49,7 +47,7 @@ td:first-child{white-space:nowrap}
     <p id="status" role="status"></p>
   </section>
   <section class="card">
-    <div class="history-heading"><h2>Contribution history</h2><button type="button" id="export" disabled>Export CSV</button></div>
+    <h2>Contribution history</h2>
     <p id="empty">No contributions recorded yet.</p>
     <div class="table-scroll"><table id="history" hidden>
       <thead><tr><th scope="col">Date</th><th scope="col">Member</th><th scope="col">Amount</th></tr></thead>
@@ -63,7 +61,6 @@ const storageKey = 'chama.contributions.v1'
 const currency = new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' })
 const form = document.querySelector('#contribution')
 const historyTable = document.querySelector('#history')
-const exportButton = document.querySelector('#export')
 const status = document.querySelector('#status')
 
 function parseAmount(value) {
@@ -81,7 +78,6 @@ function render(entries) {
   document.querySelector('#total').textContent = currency.format(total / 100)
   document.querySelector('#count').textContent = entries.length
   document.querySelector('#empty').hidden = entries.length > 0
-  exportButton.disabled = entries.length === 0
   historyTable.hidden = entries.length === 0
   const body = historyTable.tBodies[0]
   body.replaceChildren()
@@ -119,35 +115,6 @@ form.addEventListener('submit', event => {
     status.textContent = 'Contribution recorded.'
   } catch {
     status.textContent = 'The contribution could not be saved. Check browser storage and try again.'
-  }
-})
-
-function csvCell(value) {
-  const safe = /^[\s\uFEFF]*[=+@-]|^[\t\r\n]/u.test(value) ? "'" + value : value
-  return '"' + safe.replaceAll('"', '""') + '"'
-}
-
-function makeCsv(entries) {
-  const rows = entries.map(({ date, member, cents }) =>
-    [date, member, (cents / 100).toFixed(2)].map(csvCell).join(','))
-  return ['Date,Member,Amount (KES)', ...rows].join('\r\n') + '\r\n'
-}
-
-exportButton.addEventListener('click', () => {
-  try {
-    const entries = readEntries()
-    if (!entries.length) return
-    const blob = new Blob(['\uFEFF', makeCsv(entries)], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'chama-contributions.csv'
-    document.body.append(link)
-    link.click()
-    link.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-  } catch {
-    status.textContent = 'The contributions could not be exported.'
   }
 })
 </script>
